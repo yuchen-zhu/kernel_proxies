@@ -1,0 +1,15 @@
+MMR/MMR_proxy/results
+results
+MMR/results
+MMR/simulation/rbf*
+MMR/simulation/falsifyW_seed*
+MMR/simulation/rahul_seed*
+MMR/simulation/arthur*
+MMR/data
+MMR/simulation/edu
+MMR/simulation/rhc
+MMR/simulation/linear*
+MMR/simulation/ab_seed100
+build/
+dist/
+MMR_proxy.egg-info/
