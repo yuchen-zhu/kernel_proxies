@@ -1,15 +1,13 @@
-import torch, MMR_proxy.add_path
+import torch
 import numpy as np
-from baselines.all_baselines import Poly2SLS, Vanilla2SLS, DirectNN, NNP2SLS, GMM, DeepIV, AGMM, NN2SLS, Bases2SLS, KRidge, Direct_discr
+from baselines_scripts.baselines.all_baselines import Bases2SLS, KRidge, Direct_discr
 import os
 import tensorflow
 # from tabulate import tabulate
-from MMR_proxy.util import ROOT_PATH, load_data, data_transform, data_inv_transform, split_into_bins
-import random
+from MMR_proxy.util import ROOT_PATH, load_data, data_transform, split_into_bins
 # random.seed(527)
 import argparse
 import matplotlib.pyplot as plt
-from sklearn import preprocessing
 from MMR_proxy.util import visualise_ATEs
 from datetime import date
 import pickle

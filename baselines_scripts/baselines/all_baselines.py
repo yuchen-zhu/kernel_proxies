@@ -7,20 +7,18 @@
 #     from .abstract_baseline import AbstractBaseline
 #     from .agmm.deep_gmm import DeepGMM
 import pystan
-from baselines.abstract_baseline import AbstractBaseline, AbstractLVMBaseline
-from baselines.agmm.deep_gmm import DeepGMM
+from baselines_scripts.baselines.abstract_baseline import AbstractBaseline, AbstractLVMBaseline
+from baselines_scripts.baselines.agmm import DeepGMM
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Ridge, LinearRegression
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler, \
     StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn import neural_network
 from sklearn.mixture import GaussianMixture
 import sklearn.metrics.pairwise
 # from baselines.lvm import lvm_code
 # from baselines.vae import VAE
-from statsmodels.sandbox.regression.gmm import IV2SLS
 
 import numpy as np
 import torch
