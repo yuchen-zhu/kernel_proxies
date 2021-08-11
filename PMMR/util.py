@@ -9,7 +9,6 @@ from joblib import Parallel, delayed
 import torch.nn as nn
 import torch.nn.functional as F
 import autograd.scipy.linalg as splg
-from simulation.simulation_afsaneh_deprecated import gen_w
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -19,6 +18,16 @@ from sklearn import preprocessing
 JITTER = 1e-7
 nystr_M = 300
 EYE_nystr = np.eye(nystr_M)
+
+
+def gen_w_chisqu(w_size):
+    np.random.seed(100)
+    U = np.random.chisquare(m_e[0], w_size).round(3)  # generates 5000 U's to 3.d.p.
+    # noise for W
+    eW = np.random.normal(m_e[4], C[4], w_size)
+    W = (eW + 2 * U).round(3)
+    train_w, test_w, dev_w = W[:N[1] - 2000], W[-2000:-1000], W[-1000:]
+    return W
 
 
 def scale_all(train_A, train_Y, train_Z, train_W, test_A, test_Y, test_Z, test_W):
@@ -97,7 +106,8 @@ def data_inv_transform(X_scaled, X_scaler):
 
 def compute_causal_estimate(h, a, w_sample_size):
     raise ValueError('Need to test.')
-    w_sample = gen_w(w_sample_size)
+    w_sample = gen_w_chisqu(w_sample_size)
+    raise ValueError('assumes u is chisq')
     beta_a = []
     for a_ in a:
         a_ = np.tile(a_, w_sample_size)

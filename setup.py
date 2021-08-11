@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name='MMR-proxy',
+    name='PMMR',
     packages=setuptools.find_packages(),
     description='a package of the MMR part of our kernel proxies project',
     version='0.1',
