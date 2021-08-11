@@ -2,7 +2,7 @@
 In this work, we propose two kernel methods for causal effect estimation with proxy variables. 
 The repository contains implementation for the algorithms to reproduce results in the Section 4 Experiments of the [paper](https://arxiv.org/abs/2105.04544).
  
-To rune experiments for PMMR, run:
+To run experiments for PMMR, run:
 ```
 python PMMR/PMMR_models/pmmr_rkhs_nystr.py --sem=std --hparam=lmo --lmo='albl'
 python PMMR/pmmr_rkhs_nystr_ab.py --sem=ab --hparam=cube
