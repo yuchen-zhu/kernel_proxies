@@ -10,7 +10,7 @@ pip install -e .
  
 To run experiments for PMMR, run:
 ```
-python PMMR/PMMR_models/pmmr_rkhs_nystr.py --sem=std --hparam=lmo --lmo='albl'
+python PMMR/pmmr_rkhs_nystr.py --sem=std --hparam=lmo --lmo='albl'
 python PMMR/pmmr_rkhs_nystr_ab.py --sem=ab --hparam=cube
 python PMMR/pmmr_rkhs_nystr_edu.py --sem=edu_IM_80 --hparam=cube
 ```
