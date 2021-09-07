@@ -1,8 +1,8 @@
 import os
 import numpy as np
 import plotly.graph_objects as go
-from MMR_proxy.util import ROOT_PATH, load_data, bundle_az_aw, get_median_inter_mnist, _sqdist, nystrom_decomp_from_orig, chol_inv,\
-    visualise_ATEs
+from PMMR.util import get_median_inter_mnist, Kernel, load_data, ROOT_PATH, jitchol, _sqdist, \
+    remove_outliers, nystrom_decomp_from_orig, nystrom_decomp_from_sub, chol_inv, bundle_az_aw, visualise_ATEs, data_transform, data_inv_transform, indicator_kern
 from datetime import date
 import argparse
 import random
@@ -26,7 +26,7 @@ seed = 527
 
 al_diff_search_range = [-0., -0., 1]
 bl_search_range = [3, 25., 300]
-train_sizes = [200]
+train_sizes = [200, 500, 1000]
 # data_seeds = np.arange(100, 501, 100)
 data_seeds = np.array([1009, 1102, 1656, 1816, 2029,
                        2297, 2533, 2807, 4259, 4379,
@@ -84,11 +84,11 @@ def make_gaussian_prodkern(arr1, arr2, sigma):
     return K
 
 
-def process_data(train_size, dev_size, test_size, args, data_seed):
+def process_data(train_size, dev_size, test_size, args, data_seed, LOAD_PATH):
     t1 = time.time()
 
     # loads all data
-    train, dev, test = load_data(os.path.join(ROOT_PATH, "data/zoo", args.scenario_name, 'main_{}_seed{}.npz'.format(args.sem, data_seed)))
+    train, dev, test = load_data(os.path.join(LOAD_PATH, 'main_{}_seed{}.npz'.format(args.sem, data_seed)))
 
     train_Y = train.y[:train_size].reshape(-1, 1) # Y always has only 1 feature
     AZ_train, AW_train = bundle_az_aw(train.a[:train_size], train.z[:train_size], train.w[:train_size])
@@ -100,23 +100,23 @@ def process_data(train_size, dev_size, test_size, args, data_seed):
 
     W_marginal = train.w[:args.w_marginal_size].reshape(args.w_marginal_size, -1)
     w_dim = W_marginal.shape[-1]
+    do_A = np.load(os.path.join(LOAD_PATH, 'do_A_{}_seed{}.npz'.format(args.sem, data_seed)))['do_A'].reshape(-1,1)
+    EY_do_A_gt = np.load(os.path.join(LOAD_PATH, 'do_A_{}_seed{}.npz'.format(args.sem, data_seed)))['gt_EY_do_A'].reshape(-1,1)
 
-    do_A = np.load(ROOT_PATH + "/data/zoo/" + args.scenario_name + "/do_A_{}_seed{}.npz".format(args.sem, data_seed))[
-        'do_A'].reshape(-1,1)
-    EY_do_A_gt = \
-    np.load(ROOT_PATH + "/data/zoo/" + args.scenario_name + "/do_A_{}_seed{}.npz".format(args.sem, data_seed))[
-        'gt_EY_do_A'].reshape(-1,1)
 
     t2 = time.time()
     print('data loading used {}s'.format(t2 - t1))
     return train_X, train_Y, train_Z, test_X, test_Y, test_Z, W_marginal, do_A, EY_do_A_gt, w_dim
 
 
-def load_err_in_expectation_metric(args, data_seed):
+def load_err_in_expectation_metric(args, data_seed, LOAD_PATH):
     t1 = time.time()
-    axzy = np.load(ROOT_PATH + "/data/zoo/" + args.scenario_name + '/cond_exp_metric_{}_seed{}.npz'.format(args.sem, data_seed))['axzy']
-    w_samples = np.load(ROOT_PATH + "/data/zoo/" + args.scenario_name + '/cond_exp_metric_{}_seed{}.npz'.format(args.sem, data_seed))['w_samples']
-    y_samples = np.load(ROOT_PATH + "/data/zoo/" + args.scenario_name + '/cond_exp_metric_{}_seed{}.npz'.format(args.sem, data_seed))['y_samples']
+    do_A = np.load(os.path.join(LOAD_PATH, 'do_A_{}_seed{}.npz'.format(args.sem, data_seed)))['do_A']
+    EY_do_A_gt = np.load(os.path.join(LOAD_PATH, 'do_A_{}_seed{}.npz'.format(args.sem, data_seed)))['gt_EY_do_A']
+
+    axzy = np.load(os.path.join(LOAD_PATH, 'cond_exp_metric_{}_seed{}.npz'.format(args.sem, data_seed)))['axzy']
+    w_samples = np.load(os.path.join(LOAD_PATH, 'cond_exp_metric_{}_seed{}.npz'.format(args.sem, data_seed)))['w_samples']
+    y_samples = np.load(os.path.join(LOAD_PATH, 'cond_exp_metric_{}_seed{}.npz'.format(args.sem, data_seed)))['y_samples']
     y_axz = axzy[:, -1]
     ax = axzy[:, :2]
     t2 = time.time()
@@ -126,12 +126,13 @@ def load_err_in_expectation_metric(args, data_seed):
     return w_samples, y_samples, y_axz, ax, axzy
 
 
-def load_test_supp_metric(args, data_seed):
+def load_test_supp_metric(args, data_seed, LOAD_PATH):
     """
     load supported test eval data.
     """
     t2 = time.time()
-    test_supp = np.load(ROOT_PATH + "/data/zoo/" + sname + '/supported_test_metric_{}_seed{}.npz'.format(args.sem, data_seed))
+
+    test_supp = np.load(os.path.join(LOAD_PATH, 'supported_test_metric_{}_seed{}.npz'.format(args.sem, data_seed)))
     aw_test_supp = test_supp['test_aw']
     az_test_supp = test_supp['test_az']
     y_test_supp = test_supp['test_y']
@@ -383,13 +384,13 @@ def compute_losses(params_l, ax, w_samples, y_samples, y_axz, x_on,
 
 
 def get_results(do_A, EYhat_do_A, EY_do_A_gt, train_sz, err_in_expectation, mse_alternative, mse_standard, mse_supp,
-                mmr_v_supp, mmr_v, mmr_u_supp, mmr_u, lmo, params_l, args, PATH, data_seed):
+                mmr_v_supp, mmr_v, mmr_u_supp, mmr_u, lmo, params_l, args, SAVE_PATH, LOAD_PATH, data_seed):
     plt.figure()
     plt.plot(do_A.squeeze(), EYhat_do_A, label='est')
     plt.plot(do_A.squeeze(), EY_do_A_gt, label='gt')
     plt.xlabel('A'), plt.ylabel('EYdoA'), plt.legend()
     plt.savefig(
-        os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed),
+        os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed),
                      'causal_effect_estimates_nystr_trainsz{}_al{}_bl{}_offset{}.png'.format(train_sz, params_l[0], params_l[1], args.offset)))
     plt.close()
     print('ground truth ate: ', EY_do_A_gt)
@@ -397,7 +398,7 @@ def get_results(do_A, EYhat_do_A, EY_do_A_gt, train_sz, err_in_expectation, mse_
     visualise_ATEs(EY_do_A_gt, EYhat_do_A,
                    x_name='E[Y|do(A)] - gt',
                    y_name='beta_A',
-                   save_loc=os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed)),
+                   save_loc=os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed)),
                    save_name='ate_trainsz{}_al{}_bl{}_nystr_offset{}'.format(train_sz, params_l[0], params_l[1], args.offset))
 
     causal_effect_mean_abs_err = np.mean(np.abs(EY_do_A_gt.squeeze() - EYhat_do_A.squeeze()))
@@ -406,7 +407,7 @@ def get_results(do_A, EYhat_do_A, EY_do_A_gt, train_sz, err_in_expectation, mse_
     causal_rel_err = np.mean(np.abs((EYhat_do_A.squeeze() - EY_do_A_gt.squeeze())/EY_do_A_gt.squeeze()))
 
     summary_file = open(
-        os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed), "summary_trainsz{}_nystrom_hparam{}_offset{}.txt".format(train_sz, args.hparam, args.offset)),
+        os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed), "summary_trainsz{}_nystrom_hparam{}_offset{}.txt".format(train_sz, args.hparam, args.offset)),
         "a")
     summary_file.write("al: {}, bl: {}, causal_mae_: {}, causal_std: {}, causal_rel_err: {}\n"
                        "expected_error : {}, mmr_v_supp: {}, mmr_v: {}, mmr_u_supp: {}, mmr_u: {}\n"
@@ -417,21 +418,22 @@ def get_results(do_A, EYhat_do_A, EY_do_A_gt, train_sz, err_in_expectation, mse_
     summary_file.close()
 
     if args.hparam == 'lmo':
-        os.makedirs(PATH, exist_ok=True)
-        np.save(os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed),
+        os.makedirs(SAVE_PATH, exist_ok=True)
+        np.save(os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed),
                              'LMO_errs_params_l{}_nystr_trainsz{}_offset{}.npy'.format(params_l, train_sz, args.offset)),
                 [opt_params_l, prev_norm, opt_test_err])
 
     return causal_effect_mean_abs_err
 
 
-def experiment(seed, data_seed, param_l_arg, train_size, dev_size, test_size, nystr, args, PATH):
+def experiment(seed, data_seed, param_l_arg, train_size, dev_size, test_size, nystr, args, SAVE_PATH, LOAD_PATH):
     np.random.seed(seed)
     random.seed(seed)
 
     X, Y, Z, test_X, test_Y, test_Z, W_marginal, do_A, EY_do_A_gt, w_dim = process_data(train_size=train_size, dev_size=dev_size,
                                                                                         test_size=test_size,
-                                                                                        args=args, data_seed=data_seed)
+                                                                                        args=args, data_seed=data_seed,
+                                                                                        LOAD_PATH=LOAD_PATH)
 
     w_samples, y_samples, y_axz, ax, axzy = load_err_in_expectation_metric(args, data_seed=data_seed) if args.cond_metric else (None, None, None, None, None)
     aw_test_supp, az_test_supp, y_test_supp = load_test_supp_metric(args, data_seed=data_seed) if args.supp_test else (None, None, None)
@@ -650,19 +652,19 @@ def experiment(seed, data_seed, param_l_arg, train_size, dev_size, test_size, ny
                                              mmr_v_supp=losses['mmr_v_supp'], mmr_v=losses['mmr_v'],
                                              mmr_u_supp=losses['mmr_u_supp'], mmr_u=losses['mmr_u'], lmo=losses['lmo'],
                                              params_l=params_l_final, args=args,
-                                             PATH=PATH, data_seed=data_seed)
+                                             SAVE_PATH=SAVE_PATH, LOAD_PATH=LOAD_PATH, data_seed=data_seed)
 
     return causal_effect_mean_abs_err, losses['err_in_expectation'], al_default, EYhat_do_A, losses['mse_standard'], \
            losses['mse_supp'], losses['mmr_v_supp'], losses['mmr_v'], losses['mmr_u_supp'], losses['mmr_u'], losses['lmo']
 
 
-def do_bl_hparam_analysis_plots(PATH, args, train_size, bl_min, bl_max, bl_mesh_size, data_seed, **h_param_results_dict):
+def do_bl_hparam_analysis_plots(SAVE_PATH, LOAD_PATH, args, train_size, bl_min, bl_max, bl_mesh_size, data_seed, **h_param_results_dict):
     deltas = np.linspace(bl_min, bl_max, bl_mesh_size)**2
     ldas = 1/deltas/train_size/train_size
     print('ldas: ', ldas)
 
     print('plotting')
-    os.makedirs(os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed)), exist_ok=True)
+    os.makedirs(os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed)), exist_ok=True)
     causal_mae = np.array(h_param_results_dict['causal_mae'])[:, -1]
     mean_causal_mae = np.mean(causal_mae)
     causal_mae_rescaled = 1/mean_causal_mae * causal_mae
@@ -684,16 +686,16 @@ def do_bl_hparam_analysis_plots(PATH, args, train_size, bl_min, bl_max, bl_mesh_
         plt.plot(ldas, causal_mae_rescaled, label='causal_mae')
         plt.xlim(max(ldas), min(ldas))
         plt.xlabel('Hyperparameter labels'), plt.ylabel('causal_MAE/{}-rescaled'.format(var_str)), plt.legend()
-        print('save path: ', os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}.png'.format(var_str, train_size, args.offset)))
-        plt.savefig(os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}.png'.format(var_str, train_size, args.offset)))
+        print('save path: ', os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}.png'.format(var_str, train_size, args.offset)))
+        plt.savefig(os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}.png'.format(var_str, train_size, args.offset)))
         plt.close()
 
         plt.figure()
         plt.plot(np.arange(length), var_rescaled, label=var_str)
         plt.plot(np.arange(length), causal_mae_rescaled, label='causal_mae')
         plt.xlabel('Hyperparameter labels'), plt.ylabel('causal_MAE/{}-rescaled'.format(var_str)), plt.legend()
-        print('save path: ', os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}_inversc.png'.format(var_str, train_size, args.offset)))
-        plt.savefig(os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}_inversc.png'.format(var_str, train_size, args.offset)))
+        print('save path: ', os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}_inversc.png'.format(var_str, train_size, args.offset)))
+        plt.savefig(os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'hparam_anal_{}_trainsz{}_offset{}_inversc.png'.format(var_str, train_size, args.offset)))
         plt.close()
 
 
@@ -733,7 +735,7 @@ def get_best_hparam(results_dict, args):
     return hparam_selection_from_metric_votes(mmr_v=mmr_vs, mmr_v_supp=mmr_v_supps, lmo=lmos, hparam_arr=hparam_arr, args=args)
 
 
-def cube_search(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_size, args, PATH, train_size, seed, data_seed):
+def cube_search(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_size, args, SAVE_PATH, LOAD_PATH, train_size, seed, data_seed):
     al_arr, bl_arr = np.linspace(al_diff_min, al_diff_max, al_mesh_size), np.linspace(bl_min, bl_max, bl_mesh_size)
     results_dict = {'causal_mae': [],
                     'err_in_expectation': [],
@@ -754,7 +756,7 @@ def cube_search(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_
             mmr_v_supp, mmr_v, mmr_u_supp, mmr_u, lmo = experiment(seed=seed, data_seed=data_seed, param_l_arg=params_l,
                                                                    train_size=train_size, test_size=test_sz, dev_size=dev_sz,
                                                                    nystr=(False if train_size <= nystr_thresh else True),
-                                                                   args=args, PATH=PATH)
+                                                                   args=args, SAVE_PATH=SAVE_PATH, LOAD_PATH=LOAD_PATH)
 
             if 'al_default' not in results_dict:
                 results_dict['al_default'] = al_default
@@ -768,7 +770,7 @@ def cube_search(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_
             results_dict['mmr_u'].append([al_default + al, bl, mmr_u])
             results_dict['lmo'].append([al_default + al, bl, lmo])
             results_dict['ate_est'][tuple(np.append(np.array(al_default + al), bl))] = causal_effect_est
-    # do_bl_hparam_analysis_plots(PATH=PATH, args=args, train_size=train_size,
+    # do_bl_hparam_analysis_plots(SAVE_PATH=SAVE_PATH, args=args, train_size=train_size,
     #                          bl_min=bl_min, bl_max=bl_max, bl_mesh_size=bl_mesh_size,
     #                          data_seed=data_seed, **results_dict)
     best_hparams_l = get_best_hparam(results_dict, args=args)
@@ -776,17 +778,17 @@ def cube_search(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_
 
     print('best mae for {} found at params_l: {} using hparam search method: {}'.format(sname, best_hparams_l,
                                                                                       args.hparam))
-    with open(os.path.join(PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'best_params_l_cube_trainsz{}_offset{}.txt'.format(train_size, args.offset)), 'w') as f:
+    with open(os.path.join(SAVE_PATH, str(date.today()), args.sem+'_seed'+str(data_seed), 'best_params_l_cube_trainsz{}_offset{}.txt'.format(train_size, args.offset)), 'w') as f:
         f.write('best al: {}, best bl: {:.3f}'.format(best_hparams_l[0] + al_default, best_hparams_l[1]))
 
     return best_hparams_l, best_ate_est
 
 
-def hyparameter_selection(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_size, args, PATH, train_size, seed, data_seed):
+def hyparameter_selection(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max, bl_mesh_size, args, SAVE_PATH, LOAD_PATH, train_size, seed, data_seed):
     if args.hparam == 'cube':
         best_hparams_l, best_ate_est = cube_search(al_diff_min=al_diff_min, al_diff_max=al_diff_max, al_mesh_size=al_mesh_size,
                                                    bl_min=bl_min, bl_max=bl_max, bl_mesh_size=bl_mesh_size,
-                                                   args=args, PATH=PATH, train_size=train_size, data_seed=data_seed, seed=seed)
+                                                   args=args, SAVE_PATH=SAVE_PATH, LOAD_PATH=LOAD_PATH, train_size=train_size, data_seed=data_seed, seed=seed)
         return best_hparams_l, best_ate_est
 
     elif args.hparam == 'lmo':
@@ -794,7 +796,7 @@ def hyparameter_selection(al_diff_min, al_diff_max, al_mesh_size, bl_min, bl_max
         mse_supp, mmr_v_supp, mmr_v, mmr_u_supp, mmr_u, lmo = experiment(seed=seed, data_seed=data_seed, param_l_arg=[],
                                                                          train_size=train_size, dev_size=dev_sz, test_size=test_sz,
                                                                          nystr=(False if train_size <= nystr_thresh else True),
-                                                                         args=args, PATH=PATH)
+                                                                         args=args, SAVE_PATH=SAVE_PATH, LOAD_PATH=LOAD_PATH)
 
         return [args.al_lmo, args.bl_lmo], causal_effect_est
     else:
@@ -815,25 +817,26 @@ def run_pmmr_rkhs(seed, al_diff_search_range, bl_search_range, train_sizes, data
     for train_size in train_sizes:
         causal_mae_over_seeds = []
         for data_seed in data_seeds:
-            PATH = ROOT_PATH + "/../results/zoo/" + sname + "/"
-            os.makedirs(os.path.join(PATH, str(date.today()), args.sem + '_seed' + str(data_seed)), exist_ok=True)
+            SAVE_PATH = os.path.join(ROOT_PATH, "results", sname)
+            LOAD_PATH = os.path.join(ROOT_PATH, "data", sname)
+            os.makedirs(os.path.join(SAVE_PATH, str(date.today()), args.sem + '_seed' + str(data_seed)), exist_ok=True)
 
             summary_file = open(
-                os.path.join(PATH, str(date.today()), args.sem + '_seed' + str(data_seed),
+                os.path.join(SAVE_PATH, str(date.today()), args.sem + '_seed' + str(data_seed),
                              "summary_trainsz{}_nystrom_hparam{}_offset{}.txt".format(int(train_size), args.hparam, args.offset)), "w")
             summary_file.close()
 
-            do_A = np.load(ROOT_PATH + "/data/zoo/" + sname + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A']
-            EY_do_A_gt = np.load(ROOT_PATH + "/data/zoo/" + sname + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))[
+            do_A = np.load(os.path.join(LOAD_PATH, 'do_A_{}_seed{}.npz'.format(args.sem, data_seed)))['do_A']
+            EY_do_A_gt = np.load(os.path.join(LOAD_PATH, 'do_A_{}_seed{}.npz'.format(args.sem, data_seed)))[
                 'gt_EY_do_A']
 
             best_hparams_l, best_ate_est = hyparameter_selection(seed=seed, al_diff_max=al_diff_max, al_diff_min=al_diff_min,
                                                                  al_mesh_size=al_mesh_size, bl_min=bl_min, bl_max=bl_max,
-                                                                 bl_mesh_size=bl_mesh_size, args=args, PATH=PATH,
+                                                                 bl_mesh_size=bl_mesh_size, args=args, SAVE_PATH=SAVE_PATH, LOAD_PATH=LOAD_PATH,
                                                                  train_size=train_size, data_seed=data_seed)
             best_causal_mae, best_causal_std, best_causal_rel_err = evaluate_ate_est(ate_est=best_ate_est,
                                                                                      ate_gt=EY_do_A_gt)
-            np.savez(os.path.join(PATH, str(date.today()), args.sem + '_seed' + str(data_seed),
+            np.savez(os.path.join(SAVE_PATH, str(date.today()), args.sem + '_seed' + str(data_seed),
                                   'mmr_res_trainsz{}_offset{}.npz'.format(train_size, args.offset)), do_A=do_A, ate_est=best_ate_est,
                      bl=best_hparams_l[1], train_sz=train_size,
                      causal_mae=best_causal_mae, causal_std=best_causal_std, causal_rel_err=best_causal_rel_err)

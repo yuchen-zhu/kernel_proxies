@@ -8,7 +8,6 @@
 #     from .agmm.deep_gmm import DeepGMM
 import pystan
 from baselines_scripts.baselines.abstract_baseline import AbstractBaseline, AbstractLVMBaseline
-from baselines_scripts.baselines.agmm import DeepGMM
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import Ridge, LinearRegression
 from sklearn.kernel_ridge import KernelRidge
@@ -17,6 +16,7 @@ from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler, \
 from sklearn.pipeline import Pipeline
 from sklearn.mixture import GaussianMixture
 import sklearn.metrics.pairwise
+from sklearn.neural_network import MLPClassifier
 # from baselines.lvm import lvm_code
 # from baselines.vae import VAE
 

@@ -4,11 +4,10 @@ from baselines_scripts.baselines.all_baselines import Bases2SLS, KRidge, Direct_
 import os
 import tensorflow
 # from tabulate import tabulate
-from MMR_proxy.util import ROOT_PATH, load_data, data_transform, split_into_bins
+from PMMR.util import ROOT_PATH, load_data, data_transform, split_into_bins, visualise_ATEs
 # random.seed(527)
 import argparse
 import matplotlib.pyplot as plt
-from MMR_proxy.util import visualise_ATEs
 from datetime import date
 import pickle
 
@@ -133,9 +132,9 @@ def eval_ate_2sls(model_2sls, do_A, w, EY_do_A_gt, Y_scaler):
 
 
 def plotting(EYhat_do_A, do_A, EY_do_A, PATH, method_name, train_sz, args, seed, data_seed):
-    if not os.path.exists(os.path.join(PATH, args.sem+'_seed{}'.format(data_seed))):
-        os.makedirs(os.path.join(PATH, args.sem+'_seed{}'.format(data_seed)), exist_ok=True)
-    plt.figure()
+    # if not os.path.exists(os.path.join(PATH, args.sem+'_seed{}'.format(data_seed))):
+    #     os.makedirs(os.path.join(PATH, args.sem+'_seed{}'.format(data_seed)), exist_ok=True)
+    # plt.figure()
     plt.plot(do_A, np.squeeze(EYhat_do_A), label='est')
     plt.plot(do_A, EY_do_A, label='gt')
     plt.xlabel('A'), plt.ylabel('EYdoA'), plt.legend()
@@ -172,8 +171,8 @@ def run_experiment(scenario_name,mid,repid,trainsz, data_seed, num_reps=10, seed
     np.random.seed(seed)
     tensorflow.random.set_seed(seed)
 
-    # train, dev, test = load_data(ROOT_PATH+'/data/zoo/'+scenario_name+'_{}.npz'.format(trainsz))
-    train, dev, test = load_data(ROOT_PATH + '/data/zoo/' + scenario_name + '/main_{}_seed{}.npz'.format(args.sem, data_seed))
+    # train, dev, test = load_data(ROOT_PATH+'/data/'+scenario_name+'_{}.npz'.format(trainsz))
+    train, dev, test = load_data(ROOT_PATH + '/data/' + scenario_name + '/main_{}_seed{}.npz'.format(args.sem, data_seed))
 
 
     A_scaled, Y_scaled, Z_scaled, W_scaled, test_A_scaled, test_Y_scaled, test_Z_scaled, test_W_scaled, A_scaler, Y_scaler, Z_scaler, W_scaler = \
@@ -195,12 +194,12 @@ def run_experiment(scenario_name,mid,repid,trainsz, data_seed, num_reps=10, seed
     Z_train = np.concatenate((A_scaled.reshape(-1,1), Z_scaled.reshape(Z_scaled.shape[0], -1)), axis=-1)
     Y_2sls, X_2sls, Z_2sls = Y_scaled.reshape(-1, 1), X_train, Z_train
 
-    do_A = np.load(ROOT_PATH + "/data/zoo/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A']
-    do_A_unscaled = np.load(ROOT_PATH + "/data/zoo/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A']
+    do_A = np.load(ROOT_PATH + "/data/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A']
+    do_A_unscaled = np.load(ROOT_PATH + "/data/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A']
     do_A = A_scaler.transform(do_A)
-    do_A_cat = np.load(ROOT_PATH + "/data/zoo/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A_cat']
-    EY_do_A_gt = np.load(ROOT_PATH + "/data/zoo/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['gt_EY_do_A']
-    EY_do_A_cat_gt = np.load(ROOT_PATH + "/data/zoo/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['gt_EY_do_A_cat']
+    do_A_cat = np.load(ROOT_PATH + "/data/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['do_A_cat']
+    EY_do_A_gt = np.load(ROOT_PATH + "/data/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['gt_EY_do_A']
+    EY_do_A_cat_gt = np.load(ROOT_PATH + "/data/" + scenario_name + '/do_A_{}_seed{}.npz'.format(args.sem, data_seed))['gt_EY_do_A_cat']
 
     means = []
     times = []
@@ -349,7 +348,7 @@ def run_baselines(args, trainsz, sname, data_seed):
         ate_estimates_baselines: list of tuples. [('method_name', ate_estimates_for_method: list),...]
     """
     # result PATH
-    PATH = os.path.join(ROOT_PATH, "../results/zoo/", sname + "/")
+    PATH = os.path.join(ROOT_PATH, "results/", sname + "/")
     os.makedirs(PATH, exist_ok=True)
     os.makedirs(os.path.join(PATH, str(date.today()), args.sem+'_seed{}'.format(data_seed)), exist_ok=True)
     print("created directory {}".format(os.path.join(PATH, str(date.today()), args.sem+'_seed{}'.format(data_seed))))
@@ -383,7 +382,7 @@ if __name__ == "__main__":
     # for trainsz in [200,2000]:
     #     for sid in range(1):
     #         # result PATH
-    #         PATH = ROOT_PATH + "/results/zoo/" + scenarios[sid] + "/"
+    #         PATH = ROOT_PATH + "/results/" + scenarios[sid] + "/"
     #         os.makedirs(PATH, exist_ok=True)
     #         for mid in range(1):
     #             for repid in range(10):
