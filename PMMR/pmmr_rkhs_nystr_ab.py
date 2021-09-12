@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 # Global parameters
 Nfeval = 1
-JITTER_W, JITTER_L, JITTER_LW = 1e-12, 1e-5, 1e-7
+JITTER_W, JITTER_L, JITTER_LW = 1e-10, 1e-5, 1e-8
 sname = "sim_1d_no_x"
 test_sz, dev_sz = 1000, 1000
 w_marginal_size = 50
@@ -25,11 +25,11 @@ nystr_thresh = 5000
 seed = 527
 
 al_diff_search_range = [-0., -0., 1]
-bl_search_range = [3, 25., 300]
+bl_search_range = [3, 25., 10]
 train_sizes = [1500]
 # data_seeds = np.arange(100, 1001, 100)
-# data_seeds = np.arange(0, 10, 1)
-data_seeds = np.array([0])
+data_seeds = np.arange(0, 10, 1)
+# data_seeds = np.array([0])
 # data_seeds = np.array([1009, 1102, 1656, 1816, 2029,
 #                        2297, 2533, 2807, 4259, 4379,
 #                        4388, 4987, 5518, 5654, 5949,
@@ -230,7 +230,10 @@ def compute_alpha(train_size, eig_vec_K, W_nystr, X, Y, W, eig_val_K, nystr, par
         print('L @ W @ L + L / N2 condition number: ', np.linalg.cond(L @ W @ L + L / N2))
         print('L @ W @ L + L / N2 + JITTER_LW * EYEN condition number: ', np.linalg.cond(L @ W @ L + L / N2 + JITTER_LW * EYEN))
         # LWL_inv = chol_inv(L @ W @ L + L / N2 + JITTER * EYEN)
-        LWL_inv = chol_inv(L @ W @ L + L / N2)
+        try:
+            LWL_inv = chol_inv(L @ W @ L + L / N2)
+        except:
+            LWL_inv = chol_inv(L @ W @ L + L / N2 + JITTER_LW * EYEN)
         alpha = LWL_inv @ L @ W @ Y
 
     return alpha
@@ -334,7 +337,10 @@ def LMO_err_global(log_params_l, train_size, W, W_nystr_Y, eig_vec_K, inv_eig_va
         c = C @ W_nystr_Y * N2
     else:
         # LWL_inv = chol_inv(L @ W @ L + L / N2 + JITTER * EYEN)
-        LWL_inv = chol_inv(L @ W @ L + L / N2)
+        try:
+            LWL_inv = chol_inv(L @ W @ L + L / N2)
+        except:
+            LWL_inv = chol_inv(L @ W @ L + L / N2 + JITTER_LW * EYEN)
         C = L @ LWL_inv @ L / N2
         c = C @ W @ Y * N2
     c_y = c - Y

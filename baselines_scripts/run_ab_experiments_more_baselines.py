@@ -53,12 +53,25 @@ def eval_model(model, test, tag):
 
 
 def eval_ate_direct(model_direct, do_A, context, EY_do_A, Y_scaler):
+    sample = False
     if context is not None:
 
-        do_A_rep = np.repeat(do_A, [context.shape[0]], axis=-1).reshape(-1, 1)
-        context_rep = np.tile(context, [do_A.shape[0], 1])
-        EYhat_do_A_sc_out = model_direct.predict(do_A_rep, context_rep).reshape(-1, context.shape[0])
-        EYhat_do_A_sc = np.mean(EYhat_do_A_sc_out, axis=-1).reshape(-1, 1)
+        EYhat_do_A_sc = []
+        for cter, do_a in enumerate(do_A):
+            print('evaluating {}th action: {}'.format(cter, do_a))
+            do_a = do_a.reshape(-1, 1)
+            do_a_rep = np.repeat(do_a, [context.shape[0]], axis=-1).reshape(-1, 1)
+            EYhat_do_a_sc_out = model_direct.predict(do_a_rep, context).reshape(-1, context.shape[0])
+            EYhat_do_a_sc = np.mean(EYhat_do_a_sc_out, axis=-1).reshape(-1, 1)
+            EYhat_do_A_sc.append(EYhat_do_a_sc)
+
+        EYhat_do_A_sc = np.array(EYhat_do_A_sc)
+
+        # do_A_rep = np.repeat(do_A, [context.shape[0]], axis=-1).reshape(-1, 1)
+        # context_rep = np.tile(context, [do_A.shape[0], 1])
+        #
+        # EYhat_do_A_sc_out = model_direct.predict(do_A_rep, context_rep).reshape(-1, context.shape[0])
+        # EYhat_do_A_sc = np.mean(EYhat_do_A_sc_out, axis=-1).reshape(-1, 1)
 
         # EYhat_do_A_sc = []
         # for A in do_A:
@@ -195,11 +208,11 @@ def run_experiment(scenario_name,mid,repid,trainsz, data_seed, num_reps=10, seed
     methods_dfiv = []
 
     # baseline methods
-    methods_direct += [("KernelRidge", KRidge())]
+    # methods_direct += [("KernelRidge", KRidge())] #
     # methods_covar += [("KernelRidgeAdj", KRidge())]
-    methods_covar_w += [("KernelRidge-W", KRidge())]
+    methods_covar_w += [("KernelRidge-W", KRidge())] #
     # methods_2s += [("LinearP2SLS", Vanilla2SLS())]
-    methods_2s += [("Deaner18", Bases2SLS())]
+    # methods_2s += [("Deaner18", Bases2SLS())] #
     # methods_2s += [("NN2SLS", NN2SLS())]
     # methods_2s += [("NNP2SLS", NNP2SLS())]
     # methods_2s += [("GMM", GMM(g_model="2-layer", n_steps=20))]
@@ -235,7 +248,7 @@ def run_experiment(scenario_name,mid,repid,trainsz, data_seed, num_reps=10, seed
                 # for method_name, method in methods_list[mid:mid+1]:
                 for method_name, method in methods_list:
                     if method_name not in results_dict:
-                        results_dict[method_name] = {'causal_mae':{}, 'causal_std': {}, 'causal_rel_err': {}, 'causal_est': {}}
+                        results_dict[method_name] = {'causal_mae': {}, 'causal_std': {}, 'causal_rel_err': {}, 'causal_est': {}}
                     print("Running " + method_name + " " + str(rep))
                     file_name = "%s_%d_%d.npz" % (method_name, rep, X.shape[0])
                     save_path = os.path.join(PATH, file_name)

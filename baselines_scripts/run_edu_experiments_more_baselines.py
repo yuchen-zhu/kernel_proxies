@@ -56,6 +56,8 @@ def eval_ate_direct(model_direct, do_A, context, EY_do_A, Y_scaler):
     if context is not None:
 
         do_A_rep = np.repeat(do_A, [context.shape[0]], axis=-1).reshape(-1, 1)
+
+
         context_rep = np.tile(context, [do_A.shape[0], 1])
         EYhat_do_A_sc_out = model_direct.predict(do_A_rep, context_rep).reshape(-1, context.shape[0])
         EYhat_do_A_sc = np.mean(EYhat_do_A_sc_out, axis=-1).reshape(-1, 1)
@@ -216,11 +218,11 @@ def run_experiment(scenario_name,mid,repid,trainsz, data_seed, num_reps=10, seed
 
     # baseline methods
     methods_cat += [("Conditional", Direct_discr())]
-    methods_direct += [("KernelRidge", KRidge())]
+    methods_direct += [("KernelRidge", KRidge())]  #
     # methods_covar += [("KernelRidgeAdj", KRidge())]
-    methods_covar_w += [("KernelRidge-W", KRidge())]
+    methods_covar_w += [("KernelRidge-W", KRidge())]  #
     # methods_2s += [("Vanilla2SLS", Vanilla2SLS())]
-    methods_2s += [("BasesP2SLS", Bases2SLS())]
+    methods_2s += [("BasesP2SLS", Bases2SLS())]  #
     # methods_2s += [("NN2SLS", NN2SLS())]
     # methods_2s += [("NNP2SLS", NNP2SLS())]
     # methods_2s += [("GMM", GMM(g_model="2-layer", n_steps=20))]

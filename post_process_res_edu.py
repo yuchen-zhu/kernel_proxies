@@ -315,7 +315,7 @@ def process_mmr(do_A, args):
             # mmr_res = (np.load(os.path.join(PATH, args.date, args.sem+'_seed{}'.format(seed),
             #                                    'mmr_res_trainsz{}.npz'.format(train_sz)))['ate_est']).squeeze()
             mmr_res = (np.load(os.path.join(PATH, args.date, args.sem + '_seed{}'.format(seed),
-                                            'mmr_res_trainsz{}_offset{}.npz'.format(train_sz, args.offset_bool)))[
+                                            'mmr_res_trainsz{}.npz'.format(train_sz, args.offset_bool)))[
                 'ate_est']).squeeze()
 
             # print('mmr_res: '.format(mmr_res))
