@@ -1,4 +1,4 @@
-# Proximal Causal Learning with Kernels: Two-Stage Estimation and Moment Restriction
+# Proximal Causal Learning with Kernels: Two-Stage Estimation and Moment Restriction 
 In this work, we propose two kernel methods for causal effect estimation with proxy variables. 
 The repository contains implementation for the algorithms to reproduce results in the Section 4 Experiments of the [paper](https://arxiv.org/abs/2105.04544).
 
