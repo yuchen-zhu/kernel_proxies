@@ -11,9 +11,9 @@ More details and further simulations can be found in https://github.com/Afsaneh-
 
 The main accepts the observerd sample in form of dictionaries with seperate label for training (for calculation of stage 1 and stage 2) and test (calculationof causal effect based on causal function estimated using training data). To run the code you need to:
 
-copy/download main + utils + cal_alpha
-Add path/address of True_Caual_Effect.npz to load #do_cal at line #66 of main.py
-Add path/address of Data_Sample.npz to load samples at line #71 of main.py Results are compressed and saved at the same directory/path as the main.py.
+1. copy/download main + utils + cal_alpha
+2. Add path/address of True_Caual_Effect.npz to load #do_cal at line #66 of main.py
+3. Add path/address of Data_Sample.npz to load samples at line #71 of main.py Results are compressed and saved at the same directory/path as the main.py.
 
 
 ## PMMR
