@@ -17,14 +17,8 @@ import functools
 from typing import Callable
 import jax.scipy.linalg as jsla
 import jax.numpy.linalg as jnla
-
-
-
-
 import operator
 import torch
-
-
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from typing import Dict, Any, Iterator, Tuple
@@ -40,8 +34,6 @@ from numpy.linalg import matrix_rank
 
 
 import statistics 
-#from keras.models import Sequential
-#import tensorflow
 import itertools as it
 import math
 import matplotlib as mpl
@@ -62,7 +54,7 @@ from jax import random
 
 
 
-#low_b=.001
+
     
 @jax.jit
 def modist(v):   
