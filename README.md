@@ -63,8 +63,7 @@ The latex code for the tables of results are found in `results/sim_1d_no_x`, and
 ## Acknowledgments
 
 - The initial implementation of KPV based on step by step calculation of causal effect (according to Proposition 2 of paper) was slow in estimating causal effect from large samples n>1000. 
-Thanks to Liyuan Xu, we have improved implementation by replacing the final step of calculating alpha by the function utils.stage2_weights (nice trick! thank you Liyuan @liyuan9988).
-You can see Liyuan full code at https://github.com/liyuan9988/DeepFeatureProxyVariable
+Thanks to [Liyuan Xu](https://www.ly9988.work), we have improved implementation by replacing the final step of calculating alpha by the function utils.stage2_weights from his repo on DeepFeatureIV (nice trick! [Liyuan](https://www.ly9988.work)). 
 
-- We gratefully acknowledge [Rui Zhang](https://github.com/RuiZhang2016/MMRIV) for his repo on MMRIV, which we built our code base on.
+- We gratefully acknowledge [Rui Zhang](https://github.com/RuiZhang2016/MMRIV) for his repo on MMRIV, which we built our MMR code base on.
 
