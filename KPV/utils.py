@@ -20,7 +20,7 @@ import jax.numpy.linalg as jnla
 
 
 
-#import cvxpy as cp
+
 import operator
 import torch
 
@@ -60,7 +60,7 @@ import jax.scipy as jsp
 from jax import grad, jit, vmap
 from jax import random
 
-from GenScm import *
+
 
 #low_b=.001
     
