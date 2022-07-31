@@ -42,7 +42,7 @@ seed2=240650
 seed3=35400
 seed4=1872304
 num_var=6
-sd_lst= [1009,1102,1656]#5949, 7422, 4388, 2807, 5654, 5518, 1816, 1102, 9886, 1656, 4379,2029, 8455, 4987, 4259, 2533, 9783, 7987, 1009, 2297] 
+sd_lst= [1009,1102,1656] #add list of seeds 
 
 
 # verbos 200
@@ -59,16 +59,17 @@ ewh_dict={}
 
 
 
-
-do_cal=np.load('/Users/afsaneh/Downloads/True_Caual_Effect.npz')
+# Add the path to True_Caual_Effect.npz
+do_cal=np.load('~/True_Caual_Effect.npz')
 
 # if x={}: keep_x=False, otherwise keep_x=True
 keep_x=True
         
-# if variables need to be standardised (to make sure the average of y=f(x)=0 isin RKHS
+# if variables need to be standardised (to make sure the average of y=f(x)=0 isin RKHS)
 preprocess_var=True
-       
-for f in glob.glob('/Users/afsaneh/Downloads/Data_Sample/*.npz'):
+
+#Add the path to samples, dictonaries, with their name in form of main_seed%seed_std.npz
+for f in glob.glob('~/Data_Sample/*.npz'):
 
         data = np.load(f)    
         
@@ -247,7 +248,7 @@ for f in glob.glob('/Users/afsaneh/Downloads/Data_Sample/*.npz'):
                     ax.set_xlabel('A', fontweight ='bold') 
                     plt.title("l= {l}, MAE_c={b:.3f}".format(l=lambda_dict, b=mse_c))
                     plt.legend(loc='upper left');
-                    
+                    #if your data samples *.npz have different name structure (different from main_seed1009_std.npz), you may want to change this
                     plt.savefig('seed'+str(f[-12:-8])+'_Size'+str(samp_size[num])+'_scale'+str(scale_max)+'.png')
                     plt.show()
                     plt.close()
