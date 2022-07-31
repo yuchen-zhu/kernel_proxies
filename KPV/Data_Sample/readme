@@ -1,1 +1,3 @@
-Data sample: Dictionaries
+Data sample: Training and test samples are saved as dictionaries. 
+Keys: train_y,train_a,train_z,train_w,train_u,train_x,
+      test_y ,test_a,test_z ,test_w ,test_u ,test_x 
