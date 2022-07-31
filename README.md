@@ -13,7 +13,7 @@ The main accepts the observerd sample in form of dictionaries with seperate labe
 
 1. copy/download main + utils + cal_alpha
 2. Add path/address of True_Caual_Effect.npz to load #do_cal at line #66 of main.py. 
-3. Add path/address of Data_Sample which includes tarining and test sample saved as data disciotnaries, to load samples at line #71 of main.py Results are compressed and saved at the same directory/path as the main.py.
+3. Add path/address of Data_Sample which includes training and test sample saved as data disciotnaries, to load samples at line #71 of main.py Results are compressed and saved at the same directory/path as the main.py.
 
 
 ## PMMR
