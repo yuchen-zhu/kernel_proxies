@@ -18,6 +18,9 @@ The main accepts the observerd sample in form of dictionaries with seperate labe
 
 ## PMMR
 
+### Version
+We tested using python 3.7
+
 ### Installation
 To install the PMMR package, run:
 ```
